@@ -8,11 +8,19 @@
 #include <chrono>
 #include <iomanip>
 #include <thread>
+#include <ctime>
 
-using std::vector, std::string, std::pair;
-using std::cout, std::cerr, std::cin;
-using std::ifstream, std::ofstream, std::stringstream;
-using std::thread, std::ref;
+using std::vector;
+using std::string;
+using std::pair;
+using std::cout;
+using std::cerr;
+using std::cin;
+using std::ifstream;
+using std::ofstream;
+using std::stringstream;
+using std::thread;
+using std::ref;
 
 struct Sequence {
     vector<int> elements;
@@ -225,16 +233,6 @@ void search_first_row(const Configuration &config, int col, int &max_reward, vec
     buffer.pop_back();
 }
 
-string get_current_datetime() {
-    auto now = std::chrono::system_clock::now();
-    auto local_time = std::chrono::system_clock::to_time_t(now);
-
-    stringstream ss;
-    ss << std::put_time(std::localtime(&local_time), "%Y-%m-%d %H:%M:%S");
-
-    return ss.str();
-}
-
 bool save_text_to_file(const string& content, string filename) {
     ofstream file(filename);
 
@@ -339,7 +337,7 @@ int main() {
         char confirmation;
         cin >> confirmation;
         if (confirmation == 'y' || confirmation == 'Y') {
-            string filename = get_current_datetime();
+            string filename = "result.out";
             if (save_text_to_file(response, filename)) {
                 cout << "Solusi telah disimpan di " << filename << "\n\n";
             } else {

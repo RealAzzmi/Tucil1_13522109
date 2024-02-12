@@ -5,12 +5,19 @@ The program attempts to solve Breach Protocol in Cyberpunk 2077.
 
 ## Compilation
 
-Any C++ compiler supporting at least C++17 works. However, the GNU C++ compiler (g++) is prefered due to `-Ofast` optimization. For any other compilers, consult the documentation for equivalent optimization flags.
+Any C++ compiler supporting at least C++17 works. However, the GNU C++ compiler (g++) and Clang++ are preferred due to `-Ofast` optimization. For any other compilers, consult the documentation for equivalent optimization flags.
 
+For Windows, use `Clang++` since the `<thread>` standard header is not supported in `g++`.
+
+```bash
+clang++ -std=c++17 -Ofast -o main.exe src\main.cpp
+```
 
 ```bash
 g++ -std=c++17 -Ofast -o main src/main.cpp
 ```
+
+clang++ -std=c++17 -O3 -o main.exe src\main.cpp
 
 ## Usage
 
