@@ -17,8 +17,6 @@ clang++ -std=c++17 -Ofast -o main.exe src\main.cpp
 g++ -std=c++17 -Ofast -o main src/main.cpp
 ```
 
-clang++ -std=c++17 -O3 -o main.exe src\main.cpp
-
 ## Usage
 
 Upon running, the program can receive input from a file or generate the puzzle randomly. 
