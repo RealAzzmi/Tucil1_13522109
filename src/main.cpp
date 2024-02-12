@@ -1,6 +1,18 @@
-#include <bits/stdc++.h>
-using namespace std;
-typedef long long ll;
+// Lihat cara compile yang detail di README karena tidak bisa dicompile dengan biasa.
+#include <iostream>
+#include <vector>
+#include <utility>
+#include <fstream>
+#include <sstream>
+#include <random>
+#include <chrono>
+#include <iomanip>
+#include <thread>
+
+using std::vector, std::string, std::pair;
+using std::cout, std::cerr, std::cin;
+using std::ifstream, std::ofstream, std::stringstream;
+using std::thread, std::ref;
 
 struct Sequence {
     vector<int> elements;
@@ -15,29 +27,28 @@ struct Configuration {
     int maximum_buffer_size;
 };
 
-void search(const Configuration &config, const int &row, const int &col, const bool &vertical, vector<vector<bool>> &taken, vector<int> &buffer, vector<int> &token_path, vector<pair<int, int>> &path, vector<pair<int, int>> &optimal_path, int &max_reward) {
-    if ((int)buffer.size() > config.maximum_buffer_size) {
-        return;
-    }
-    if (buffer.size() == config.maximum_buffer_size) {
-        int cur_prize = 0;
-        for (const auto &reward : config.rewards) {
-            for (int i = 0, buf_sz = (int)buffer.size(), rew_sz = (int)reward.elements.size(); i <= buf_sz - rew_sz; ++i) {
-                bool valid = true;
-                for (int j = i; valid && j < i + rew_sz; ++j) {
-                    if (buffer[j] != reward.elements[j-i]) valid = false;
-                }
-                if (valid) {
-                    cur_prize += reward.value;
-                    break;
+void search(const Configuration &config, const int &row, const int &col, const bool &vertical, vector<vector<bool>> &taken, vector<int> &buffer, vector<int> &optimal_token_path, vector<pair<int, int>> &path, vector<pair<int, int>> &optimal_path, int &max_reward) {
+    int cur_prize = 0;
+    for (const auto &reward : config.rewards) {
+        for (int i = 0, buf_sz = (int)buffer.size(), rew_sz = (int)reward.elements.size(); i <= buf_sz - rew_sz; ++i) {
+            bool valid = true;
+            for (int j = i; valid && j < i + rew_sz; ++j) {
+                if (buffer[j] != reward.elements[j-i]) {
+                    valid = false;
                 }
             }
+            if (valid) {
+                cur_prize += reward.value;
+                break;
+            }
         }
-        if (cur_prize > max_reward) {
-            max_reward = cur_prize;
-            token_path = buffer;
-            optimal_path = path;
-        }
+    }
+    if (cur_prize > max_reward) {
+        max_reward = cur_prize;
+        optimal_token_path = buffer;
+        optimal_path = path;
+    }
+    if (buffer.size() == config.maximum_buffer_size) {
         return;
     }
     if (vertical) {
@@ -46,10 +57,10 @@ void search(const Configuration &config, const int &row, const int &col, const b
                 buffer.push_back(config.matrix[i][col]);
                 taken[i][col] = true;
                 path.emplace_back(col, i);                
-                search(config, i, col, false, taken, buffer, token_path, path, optimal_path, max_reward);
+                search(config, i, col, false, taken, buffer, optimal_token_path, path, optimal_path, max_reward);
                 path.pop_back();
-                buffer.pop_back();
                 taken[i][col] = false;
+                buffer.pop_back();
             }
         }
     } else {
@@ -58,22 +69,22 @@ void search(const Configuration &config, const int &row, const int &col, const b
                 buffer.push_back(config.matrix[row][i]);
                 taken[row][i] = true;
                 path.emplace_back(i, row);
-                search(config, row, i, true, taken, buffer, token_path, path, optimal_path, max_reward);
+                search(config, row, i, true, taken, buffer, optimal_token_path, path, optimal_path, max_reward);
                 path.pop_back();
-                buffer.pop_back();
                 taken[row][i] = false;
+                buffer.pop_back();
             }
         }
     }
 }
 
-void read_text_file(Configuration &config) {
+bool read_text_file(Configuration &config) {
     cout << 
-        "\nFormat text file:\n\n"
+        "Format text file:\n\n"
         
         "buffer_size\n"
         "matrix_width matrix_height\n"
-        "matrix\n"
+        "matrix (jumlah row sebanyak matrix_height dan jumlah kolom sebanyak matrix_width)\n"
         "number_of_sequences\n"
         "sequences_1\n"
         "sequences_1_reward\n"
@@ -86,13 +97,13 @@ void read_text_file(Configuration &config) {
         "Masukkan alamat lengkap file: ";
     cout.flush();
 
-    string filename = "input.in";
+    string filename;
     cin >> filename;
     ifstream input_file(filename);
 
     if (!input_file.is_open()) {
-        cerr << "File gagal dibuka." << endl;
-        return;
+        cerr << "File gagal dibuka.\n\n";
+        return false;
     }
     
     input_file >> config.maximum_buffer_size;
@@ -124,6 +135,7 @@ void read_text_file(Configuration &config) {
         input_file.ignore();
         config.rewards.push_back(s);
     }
+    return true;
 }
 
 void generate_game(Configuration &config) {
@@ -155,11 +167,11 @@ void generate_game(Configuration &config) {
     for (int j = 0; j < config.height; ++j) {
         config.matrix[j].resize(config.width);
     }
-    random_device dev;
-    mt19937 generator(dev());
-    uniform_int_distribution<int> distribution_length(2, max_sequence_size);
-    uniform_int_distribution<int> distribution_token(0, total_tokens - 1);
-    uniform_int_distribution<int> distribution_reward(1, 10);
+    std::random_device dev;
+    std::mt19937 generator(dev());
+    std::uniform_int_distribution<int> distribution_length(2, max_sequence_size);
+    std::uniform_int_distribution<int> distribution_token(0, total_tokens - 1);
+    std::uniform_int_distribution<int> distribution_reward(-13, 10);
     for (int j = 0; j < config.height; ++j) {
         config.matrix[j].resize(config.width);
         for (int i = 0; i < config.width; ++i) {
@@ -199,7 +211,7 @@ void generate_game(Configuration &config) {
     cout << '\n';
 }
 
-void search_first_row(const Configuration &config, int col, int &max_reward, vector<pair<int, int>> &optimal_path, vector<int> &token_path) {
+void search_first_row(const Configuration &config, int col, int &max_reward, vector<pair<int, int>> &optimal_path, vector<int> &optimal_token_path) {
     vector<vector<bool>> taken(config.height, vector<bool>(config.width));
     vector<int> buffer;
     vector<pair<int, int>> path;
@@ -207,19 +219,23 @@ void search_first_row(const Configuration &config, int col, int &max_reward, vec
     taken[0][col] = true;
     buffer.push_back(config.matrix[0][col]);
     path.emplace_back(col, 0);
-    search(config, 0, col, true, taken, buffer, token_path, path, optimal_path, max_reward);
+    search(config, 0, col, true, taken, buffer, optimal_token_path, path, optimal_path, max_reward);
     path.pop_back();
     taken[0][col] = false;
     buffer.pop_back();
 }
 
-bool save_text_to_file(const string& content) {
-    time_t now = time(nullptr);
-    tm* timeinfo = localtime(&now);
+string get_current_datetime() {
+    auto now = std::chrono::system_clock::now();
+    auto local_time = std::chrono::system_clock::to_time_t(now);
 
-    char filename[80];
-    strftime(filename, sizeof(filename), "%Y-%m-%d_%H-%M-%S.txt", timeinfo);
+    stringstream ss;
+    ss << std::put_time(std::localtime(&local_time), "%Y-%m-%d %H:%M:%S");
 
+    return ss.str();
+}
+
+bool save_text_to_file(const string& content, string filename) {
     ofstream file(filename);
 
     if (file.is_open()) {
@@ -238,35 +254,40 @@ int main() {
         cout <<
             "Pilih metode input:\n"
             "1. Input dengan text file.\n"
-            "2. Input dihasilkan secara automatis.\n\n:> ";
+            "2. Input dihasilkan secara automatis.\n\n";
         cout.flush();
 
         int input_type;
+        cout << ":> ";
+        cout.flush();
         cin >> input_type;
 
         Configuration config;
 
         if (input_type == 1) {
-            read_text_file(config);
+            if (!read_text_file(config)) {
+                continue;
+            }
         } else if (input_type == 2) {
             generate_game(config);
         } else {
-            cout << "Input tidak valid.\n";
+            cout << "Input tidak valid.\n\n";
             continue;
         }
 
         int max_reward = 0;
         vector<pair<int, int>> optimal_path;
-        vector<int> token_path;
+        vector<int> optimal_token_path;
 
-        auto start = chrono::steady_clock::now();
+        auto start = std::chrono::steady_clock::now();
+
         vector<int> max_rewards(config.width);
         vector<vector<pair<int, int>>> optimal_paths(config.width);
-        vector<vector<int>> token_paths(config.width);
-        vector<thread> threads;
+        vector<vector<int>> optimal_token_paths(config.width);
 
-        for (int col = 0; col < config.width; ++col ) {
-            threads.push_back(thread(search_first_row, config, col, ref(max_rewards[col]), ref(optimal_paths[col]), ref(token_paths[col])));
+        vector<thread> threads;
+        for (int col = 0; col < config.width; ++col) {
+            threads.push_back(thread(search_first_row, ref(config), col, ref(max_rewards[col]), ref(optimal_paths[col]), ref(optimal_token_paths[col])));
         }
         for (auto &thread : threads) {
             thread.join();
@@ -279,26 +300,24 @@ int main() {
         for (int col = 0; col < config.width; ++col) {
             if (max_rewards[col] == max_reward) {
                 optimal_path = optimal_paths[col];
-                token_path = token_paths[col];
+                optimal_token_path = optimal_token_paths[col];
                 break;
             }
         }
-        auto end = chrono::steady_clock::now();
-        auto duration = chrono::duration_cast<chrono::nanoseconds>(end - start).count();
+        auto end = std::chrono::steady_clock::now();
+
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start).count();
 
         stringstream response_stream;
 
         if (max_reward == 0) {
-            response_stream << "\nTidak ditemukan solusi\n";
+            response_stream << "Tidak ditemukan solusi yang menghasilkan total hadiah yang positif.\n";
         } else {
-            response_stream << max_reward;
-            response_stream << '\n';
-            for (auto &i : token_path) {
+            response_stream << max_reward << '\n';
+            for (auto &i : optimal_token_path) {
                 int b = (i % 256);
                 int a = ((i - b) / 256);
-                response_stream << (char)a;
-                response_stream << (char)b;
-                response_stream << ' ';               
+                response_stream << (char)a << (char)b << ' ';
             }
             response_stream << '\n';
 
@@ -310,22 +329,24 @@ int main() {
             }
             response_stream << '\n';
         }
-        response_stream << (double)duration / 1e6;
-        response_stream << " ms";
+        response_stream << (double)duration / 1e6 << " ms";
+        
         string response = response_stream.str();
-
         cout << response;
         cout.flush();
         cout << "\n\nApakah ingin menyimpan solusi? (y/n) ";
         cout.flush();
         char confirmation;
         cin >> confirmation;
-        if (confirmation == 'y') {
-            save_text_to_file(response);
-            cout << "Solusi telah disimpan dalam sebuah file.\n";
+        if (confirmation == 'y' || confirmation == 'Y') {
+            string filename = get_current_datetime();
+            if (save_text_to_file(response, filename)) {
+                cout << "Solusi telah disimpan di " << filename << "\n\n";
+            } else {
+                cout << "Solusi gagal disimpan dalam sebuah file karena error.\n\n";
+            }
         } else {
-            cout << "Solusi tidak disimpan dalam sebuah file.\n";
+            cout << "Solusi tidak disimpan dalam sebuah file.\n\n";
         }
-
     }
 }
